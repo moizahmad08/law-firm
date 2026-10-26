@@ -20,6 +20,17 @@ export function generateSessionToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+// In-memory fallback session store for demo personas when database is offline or unprovisioned
+const inMemoryDemoSessions = new Map<string, { user: User; expiresAt: Date }>();
+
+export function createDemoSession(user: any): { rawToken: string; expiresAt: Date } {
+  const rawToken = "demo_" + generateSessionToken();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + ABSOLUTE_TIMEOUT_HOURS * 60 * 60 * 1000);
+  inMemoryDemoSessions.set(rawToken, { user: user as User, expiresAt });
+  return { rawToken, expiresAt };
+}
+
 export async function createSession({
   userId,
   ipAddress,
@@ -52,6 +63,14 @@ export async function validateSessionToken(
   rawToken: string
 ): Promise<SessionValidationResult | null> {
   if (!rawToken || rawToken.trim() === "") return null;
+
+  // Check demo session first
+  if (rawToken.startsWith("demo_")) {
+    const demo = inMemoryDemoSessions.get(rawToken);
+    if (demo && demo.expiresAt > new Date()) {
+      return { user: demo.user, sessionId: "demo-session-" + demo.user.id };
+    }
+  }
 
   try {
     const tokenHash = hashToken(rawToken.trim());
