@@ -554,11 +554,11 @@ export function LegalResearchPortal({
                 <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                 <div className="text-xs">
                   <h4 className="font-bold text-amber-300">
-                    Judicial Notice: "Article 302" vs Section 302 PPC
+                    Judicial Notice: &ldquo;Article 302&rdquo; vs Section 302 PPC
                   </h4>
                   <p className="text-slate-300 mt-1 leading-relaxed text-[11px]">
                     Under Pakistani jurisprudence, the Constitution of Pakistan (1973) contains Articles 1 to 280. 
-                    The widely cited phrase <strong>"Article 302"</strong> is a colloquialism for <strong>Section 302 of the Pakistan Penal Code, 1860 (PPC)</strong>, 
+                    The widely cited phrase <strong>&ldquo;Article 302&rdquo;</strong> is a colloquialism for <strong>Section 302 of the Pakistan Penal Code, 1860 (PPC)</strong>, 
                     which codifies murder (<em>qatl-i-amd</em>), capital retribution (<em>qisas</em>), and discretionary punishment (<em>ta&apos;zir</em>). 
                     Our database below accurately displays Section 302 PPC and related provisions.
                   </p>
@@ -605,7 +605,7 @@ export function LegalResearchPortal({
                   if (combinedItems.length === 0) {
                     return (
                       <div className="p-8 text-center text-slate-400 text-xs bg-slate-900 rounded-2xl border border-slate-800">
-                        No articles or statutory rules found matching "{constQuery}". Try another keyword or article number.
+                        No articles or statutory rules found matching &ldquo;{constQuery}&rdquo;. Try another keyword or article number.
                       </div>
                     );
                   }
