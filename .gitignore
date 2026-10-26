@@ -7,9 +7,9 @@ node_modules/
 !.env.example
 
 # private local document storage and exports
-storage/
-uploads/
-exports/
+/storage/
+/uploads/
+/exports/
 
 # build output
 .next/
