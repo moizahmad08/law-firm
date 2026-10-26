@@ -1,0 +1,1122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("MIGRATION_DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  OFFICE_ADMIN
+  LAWYER
+  ASSISTANT
+  FINANCE_ADMIN
+}
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum RoleInCase {
+  LEAD_COUNSEL
+  ASSOCIATE
+  CLERK
+}
+
+enum PartyRole {
+  PETITIONER
+  APPELLANT
+  PLAINTIFF
+  RESPONDENT
+  DEFENDANT
+  PROFORMA_RESPONDENT
+  OPPOSING_COUNSEL
+  CO_COUNSEL
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+enum BreakGlassStatus {
+  PENDING
+  APPROVED
+  EXPIRED
+  REVOKED
+}
+
+enum DocumentCategory {
+  COURT_ORDER
+  PLEADING
+  EVIDENCE
+  CONTRACT
+  CLIENT_DOC
+  CORRESPONDENCE
+  POWER_OF_ATTORNEY
+  OTHER
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+}
+
+enum HearingStatus {
+  SCHEDULED
+  HEARD
+  ADJOURNED
+  DECIDED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  UNDER_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  WAIVED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CHEQUE
+  CASH
+  ONLINE
+}
+
+enum ExpenseCategory {
+  COURT_FEE
+  STAMP_PAPER
+  PROCESS_SERVING
+  TRAVEL
+  COPIES_TRANSCRIPTS
+  OTHER
+}
+
+enum ExpenseStatus {
+  OUTSTANDING
+  PAID
+  REIMBURSED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum SummaryType {
+  OVERVIEW
+  LEGAL_ISSUES
+  PROCEDURAL_HISTORY
+  FACTUAL_BACKGROUND
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum ExtractedEventType {
+  HEARING_DATE
+  FILING_DEADLINE
+  COMPLIANCE_TASK
+}
+
+enum ExtractionStatus {
+  PENDING_REVIEW
+  CONFIRMED
+  REJECTED
+}
+
+enum PrecedentCourtType {
+  SUPREME_COURT
+  HIGH_COURT_SINDH
+  HIGH_COURT_LAHORE
+  HIGH_COURT_ISLAMABAD
+  HIGH_COURT_PESHAWAR
+  HIGH_COURT_BALOCHISTAN
+  FEDERAL_SHARIAT_COURT
+  APPELLATE_TRIBUNAL
+}
+
+enum PrecedentPrecedentialWeight {
+  BINDING
+  PERSUASIVE
+}
+
+enum PrecedentStatus {
+  GOOD_LAW
+  OVERRULED
+  DISTINGUISHED
+  UNDER_REVIEW
+}
+
+enum TemplateCategory {
+  COURT_PLEADINGS
+  APPLICATIONS
+  CONTRACTS
+  LEGAL_NOTICES
+  CLIENT_CORRESPONDENCE
+  OFFICE_DOCUMENTS
+}
+
+enum DocumentApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  EXPORTED_FOR_SIGNING
+  SIGNED_COPY_UPLOADED
+  REJECTED
+  SUPERSEDED
+}
+
+enum MessageChannel {
+  EMAIL
+  WHATSAPP
+  SMS
+}
+
+enum MessageApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SENT
+  FAILED
+}
+
+enum PasswordDeliveryMethod {
+  WHATSAPP
+  SMS
+  MANUAL
+}
+
+model User {
+  id                  String    @id @default(uuid()) @db.Uuid
+  email               String    @unique
+  fullName            String    @map("full_name")
+  passwordHash        String    @map("password_hash")
+  role                Role
+  isActive            Boolean   @default(true) @map("is_active")
+  mfaEnabled          Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret           String?   @map("mfa_secret")
+  mfaEnrolledAt       DateTime? @map("mfa_enrolled_at") @db.Timestamptz(6)
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz(6)
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz(6)
+  passwordChangedAt   DateTime? @map("password_changed_at") @db.Timestamptz(6)
+
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz(6)
+  rowVersion          Int       @default(1) @map("row_version")
+
+  assignedCases              CaseAssignment[]    @relation("AssignedLawyer")
+  assignmentsMade            CaseAssignment[]    @relation("AssigningAdmin")
+  auditEvents                AuditEvent[]
+  sessions                   Session[]
+  breakGlassRequestsMade     BreakGlassRequest[] @relation("BreakGlassRequester")
+  breakGlassRequestsApproved BreakGlassRequest[] @relation("BreakGlassApprover")
+  createdDocuments           Document[]          @relation("CreatedDocuments")
+  uploadedVersions           DocumentVersion[]   @relation("UploadedVersions")
+  createdHearings            Hearing[]           @relation("CreatedHearings")
+  assignedTasks              Task[]              @relation("AssignedTasks")
+  createdTasks               Task[]              @relation("CreatedTasks")
+  agreedFees                 CaseFee[]           @relation("AgreedBy")
+  receivedPayments           Payment[]           @relation("ReceivedBy")
+  reversedPayments           Payment[]           @relation("ReversedBy")
+  incurredExpenses           Expense[]           @relation("IncurredBy")
+  exportLogs                 ExportLog[]
+  generatedSummaries         CaseSummary[]           @relation("GeneratedSummaries")
+  chatMessages               CaseChatMessage[]
+  reviewedExtractedEvents    ExtractedEvent[]        @relation("ReviewedExtractedEvents")
+  verifiedPrecedents         LegalPrecedent[]        @relation("VerifiedPrecedents")
+  createdTemplates           DocumentTemplate[]      @relation("CreatedTemplates")
+  publishedTemplateVersions  TemplateVersion[]       @relation("PublishedTemplateVersions")
+  createdGeneratedDocuments  GeneratedDocument[]     @relation("CreatedGeneratedDocuments")
+  approvedGeneratedDocuments GeneratedDocument[]     @relation("ApprovedGeneratedDocuments")
+  createdClientMessages      ClientMessage[]         @relation("CreatedClientMessages")
+  approvedClientMessages     ClientMessage[]         @relation("ApprovedClientMessages")
+  createdExternalShares      ExternalDocumentShare[] @relation("CreatedExternalShares")
+  approvedExternalShares     ExternalDocumentShare[] @relation("ApprovedExternalShares")
+
+  @@map("users")
+}
+
+model Session {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  ipAddress    String?   @map("ip_address")
+  userAgent    String?   @map("user_agent")
+
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  rowVersion   Int       @default(1) @map("row_version")
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("sessions")
+}
+
+model Client {
+  id         String     @id @default(uuid()) @db.Uuid
+  name       String
+  clientType ClientType @default(INDIVIDUAL) @map("client_type")
+  mobile     String
+  email      String?
+  address    String?
+  cnic       String?
+
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  rowVersion Int        @default(1) @map("row_version")
+
+  cases          Case[]
+  clientMessages ClientMessage[]
+
+  @@map("clients")
+}
+
+model Court {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique
+  name         String
+  jurisdiction String
+  province     String
+  city         String
+  isActive     Boolean   @default(true) @map("is_active")
+
+  benches      Bench[]
+  cases        Case[]
+
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  rowVersion   Int       @default(1) @map("row_version")
+
+  @@map("courts")
+}
+
+model Bench {
+  id        String   @id @default(uuid()) @db.Uuid
+  courtId   String   @map("court_id") @db.Uuid
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  name      String
+  code      String
+  city      String
+  isActive  Boolean  @default(true) @map("is_active")
+
+  cases     Case[]
+  hearings  Hearing[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([courtId, code])
+  @@map("benches")
+}
+
+model Judge {
+  id          String   @id @default(uuid()) @db.Uuid
+  fullName    String   @map("full_name")
+  designation String
+  courtName   String   @map("court_name")
+  isActive    Boolean  @default(true) @map("is_active")
+
+  hearings    Hearing[]
+
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("judges")
+}
+
+model CaseStatus {
+  id           String     @id @default(uuid()) @db.Uuid
+  code         String     @unique
+  label        String
+  displayOrder Int        @default(0) @map("display_order")
+  isActive     Boolean    @default(true) @map("is_active")
+
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  rowVersion   Int        @default(1) @map("row_version")
+
+  cases        Case[]
+
+  @@map("case_statuses")
+}
+
+model Case {
+  id             String    @id @default(uuid()) @db.Uuid
+  caseNumber     String    @map("case_number")
+  title          String
+  court          String
+  province       String
+  city           String
+  jurisdiction   String
+  caseType       String    @map("case_type")
+  filingDate     DateTime? @map("filing_date") @db.Date
+  isRestricted   Boolean   @default(false) @map("is_restricted")
+  opposingParty  String?   @map("opposing_party")
+  opposingLawyer String?   @map("opposing_lawyer")
+
+  clientId       String     @map("client_id") @db.Uuid
+  client         Client     @relation(fields: [clientId], references: [id])
+
+  statusId       String     @map("status_id") @db.Uuid
+  status         CaseStatus @relation(fields: [statusId], references: [id])
+
+  courtId        String?    @map("court_id") @db.Uuid
+  courtRef       Court?     @relation(fields: [courtId], references: [id])
+
+  benchId        String?    @map("bench_id") @db.Uuid
+  benchRef       Bench?     @relation(fields: [benchId], references: [id])
+
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  rowVersion     Int        @default(1) @map("row_version")
+
+  assignments        CaseAssignment[]
+  parties            CaseParty[]
+  customFields       CustomFieldValue[]
+  primaryRelations   RelatedCase[]       @relation("PrimaryCases")
+  relatedRelations   RelatedCase[]       @relation("ConnectedCases")
+  breakGlassRequests BreakGlassRequest[]
+  documents          Document[]
+  hearings           Hearing[]
+  tasks              Task[]
+  fee                CaseFee?
+  payments           Payment[]
+  expenses           Expense[]
+  summaries          CaseSummary[]
+  chatMessages       CaseChatMessage[]
+  extractedEvents    ExtractedEvent[]
+  generatedDocuments GeneratedDocument[]
+  clientMessages     ClientMessage[]
+  externalShares     ExternalDocumentShare[]
+
+  @@unique([court, caseNumber])
+  @@index([statusId])
+  @@index([clientId])
+  @@index([courtId])
+  @@map("cases")
+}
+
+model CaseParty {
+  id            String    @id @default(uuid()) @db.Uuid
+  caseId        String    @map("case_id") @db.Uuid
+  case          Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  partyRole     PartyRole @map("party_role")
+  name          String
+  cnic          String?
+  contactNumber String?   @map("contact_number")
+  email         String?
+  address       String?
+  advocateName  String?   @map("advocate_name")
+  isPrimary     Boolean   @default(false) @map("is_primary")
+
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  rowVersion    Int       @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([name])
+  @@index([cnic])
+  @@map("case_parties")
+}
+
+model RelatedCase {
+  id               String   @id @default(uuid()) @db.Uuid
+  primaryCaseId    String   @map("primary_case_id") @db.Uuid
+  primaryCase      Case     @relation("PrimaryCases", fields: [primaryCaseId], references: [id], onDelete: Cascade)
+  relatedCaseId    String   @map("related_case_id") @db.Uuid
+  relatedCase      Case     @relation("ConnectedCases", fields: [relatedCaseId], references: [id], onDelete: Cascade)
+  relationshipType String   @map("relationship_type")
+  notes            String?
+
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([primaryCaseId, relatedCaseId])
+  @@map("related_cases")
+}
+
+model CustomFieldDefinition {
+  id           String          @id @default(uuid()) @db.Uuid
+  code         String          @unique
+  label        String
+  fieldType    CustomFieldType @map("field_type")
+  caseType     String?         @map("case_type")
+  isRequired   Boolean         @default(false) @map("is_required")
+  optionsJson  Json?           @map("options_json")
+  displayOrder Int             @default(0) @map("display_order")
+  isActive     Boolean         @default(true) @map("is_active")
+
+  values       CustomFieldValue[]
+
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("custom_field_definitions")
+}
+
+model CustomFieldValue {
+  id                String                @id @default(uuid()) @db.Uuid
+  caseId            String                @map("case_id") @db.Uuid
+  case              Case                  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fieldDefinitionId String                @map("field_definition_id") @db.Uuid
+  fieldDefinition   CustomFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
+
+  valueText         String?               @map("value_text")
+  valueNumber       Float?                @map("value_number")
+  valueDate         DateTime?             @map("value_date") @db.Date
+  valueBoolean      Boolean?              @map("value_boolean")
+
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  rowVersion        Int                   @default(1) @map("row_version")
+
+  @@unique([caseId, fieldDefinitionId])
+  @@index([caseId])
+  @@map("custom_field_values")
+}
+
+model ConflictCheckRecord {
+  id               String    @id @default(uuid()) @db.Uuid
+  queriedByName    String    @map("queried_by_name")
+  queriedByUserId  String?   @map("queried_by_user_id") @db.Uuid
+  queriedPartyName String    @map("queried_party_name")
+  queriedCnic      String?   @map("queried_cnic")
+  matchFound       Boolean   @default(false) @map("match_found")
+  matchedDetails   Json?     @map("matched_details")
+  isCleared        Boolean   @default(false) @map("is_cleared")
+  clearedByUserId  String?   @map("cleared_by_user_id") @db.Uuid
+  clearedAt        DateTime? @map("cleared_at") @db.Timestamptz(6)
+  clearanceNotes   String?   @map("clearance_notes")
+
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([queriedPartyName])
+  @@index([createdAt])
+  @@map("conflict_check_records")
+}
+
+model BreakGlassRequest {
+  id                String           @id @default(uuid()) @db.Uuid
+  requestedByUserId String           @map("requested_by_user_id") @db.Uuid
+  requestedByUser   User             @relation("BreakGlassRequester", fields: [requestedByUserId], references: [id])
+  targetCaseId      String           @map("target_case_id") @db.Uuid
+  targetCase        Case             @relation(fields: [targetCaseId], references: [id])
+  justification     String
+  status            BreakGlassStatus @default(PENDING)
+  approvedByUserId  String?          @map("approved_by_user_id") @db.Uuid
+  approvedByUser    User?            @relation("BreakGlassApprover", fields: [approvedByUserId], references: [id])
+  approvedAt        DateTime?        @map("approved_at") @db.Timestamptz(6)
+  expiresAt         DateTime?        @map("expires_at") @db.Timestamptz(6)
+  revokedAt         DateTime?        @map("revoked_at") @db.Timestamptz(6)
+
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([requestedByUserId])
+  @@index([targetCaseId])
+  @@map("break_glass_requests")
+}
+
+model CaseAssignment {
+  id           String     @id @default(uuid()) @db.Uuid
+  caseId       String     @map("case_id") @db.Uuid
+  case         Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId       String     @map("user_id") @db.Uuid
+  user         User       @relation("AssignedLawyer", fields: [userId], references: [id], onDelete: Cascade)
+  roleInCase   RoleInCase @default(LEAD_COUNSEL) @map("role_in_case")
+  assignedById String?    @map("assigned_by_id") @db.Uuid
+  assignedBy   User?      @relation("AssigningAdmin", fields: [assignedById], references: [id])
+  assignedAt   DateTime   @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  unassignedAt DateTime?  @map("unassigned_at") @db.Timestamptz(6)
+  isActive     Boolean    @default(true) @map("is_active")
+
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  rowVersion   Int        @default(1) @map("row_version")
+
+  @@unique([caseId, userId, isActive])
+  @@map("case_assignments")
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  beforeState Json?    @map("before_state")
+  afterState  Json?    @map("after_state")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  rowVersion  Int      @default(1) @map("row_version")
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_events")
+}
+
+model Document {
+  id                   String            @id @default(uuid()) @db.Uuid
+  caseId               String            @map("case_id") @db.Uuid
+  case                 Case              @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  category             DocumentCategory  @default(OTHER)
+  title                String
+  description          String?
+  isRestricted         Boolean           @default(false) @map("is_restricted")
+  createdById          String            @map("created_by_id") @db.Uuid
+  createdBy            User              @relation("CreatedDocuments", fields: [createdById], references: [id])
+  currentVersionNumber Int               @default(1) @map("current_version_number")
+
+  versions                 DocumentVersion[]
+  linkedGeneratedDocuments GeneratedDocument[] @relation("LinkedSignedDocument")
+
+  createdAt            DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt            DateTime?         @map("deleted_at") @db.Timestamptz(6)
+  rowVersion           Int               @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([category])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id             String     @id @default(uuid()) @db.Uuid
+  documentId     String     @map("document_id") @db.Uuid
+  document       Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber  Int        @map("version_number")
+  fileName       String     @map("file_name")
+  fileExtension  String     @map("file_extension")
+  mimeType       String     @map("mime_type")
+  fileSizeBytes  BigInt     @map("file_size_bytes")
+  storagePath    String     @map("storage_path")
+  fileHashSha256 String     @map("file_hash_sha256")
+  notes          String?
+  scanStatus     ScanStatus @default(PENDING) @map("scan_status")
+  scannedAt      DateTime?  @map("scanned_at") @db.Timestamptz(6)
+  uploaderId     String     @map("uploader_id") @db.Uuid
+  uploader       User       @relation("UploadedVersions", fields: [uploaderId], references: [id])
+
+  pages          DocumentPage[]
+  extractedEvents ExtractedEvent[]
+  externalShareItems ExternalShareItem[]
+
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@index([fileHashSha256])
+  @@map("document_versions")
+}
+
+model Hearing {
+  id             String        @id @default(uuid()) @db.Uuid
+  caseId         String        @map("case_id") @db.Uuid
+  case           Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  court          String
+  benchId        String?       @map("bench_id") @db.Uuid
+  benchRef       Bench?        @relation(fields: [benchId], references: [id])
+  judgeId        String?       @map("judge_id") @db.Uuid
+  judgeRef       Judge?        @relation(fields: [judgeId], references: [id])
+  hearingDate    DateTime      @map("hearing_date") @db.Timestamptz(6)
+  purpose        String
+  status         HearingStatus @default(SCHEDULED)
+  outcome        String?
+  nextDate       DateTime?     @map("next_date") @db.Timestamptz(6)
+  actionRequired String?       @map("action_required")
+  notes          String?
+  createdById    String        @map("created_by_id") @db.Uuid
+  createdBy      User          @relation("CreatedHearings", fields: [createdById], references: [id])
+
+  tasks          Task[]
+
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  rowVersion     Int           @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([hearingDate])
+  @@map("hearings")
+}
+
+model Task {
+  id               String       @id @default(uuid()) @db.Uuid
+  caseId           String?      @map("case_id") @db.Uuid
+  case             Case?        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  hearingId        String?      @map("hearing_id") @db.Uuid
+  hearing          Hearing?     @relation(fields: [hearingId], references: [id], onDelete: SetNull)
+  title            String
+  description      String?
+  priority         TaskPriority @default(MEDIUM)
+  status           TaskStatus   @default(PENDING)
+  dueDate          DateTime?    @map("due_date") @db.Timestamptz(6)
+  completionDate   DateTime?    @map("completion_date") @db.Timestamptz(6)
+  assignedToUserId String?      @map("assigned_to_user_id") @db.Uuid
+  assignedToUser   User?        @relation("AssignedTasks", fields: [assignedToUserId], references: [id])
+  createdById      String       @map("created_by_id") @db.Uuid
+  createdBy        User         @relation("CreatedTasks", fields: [createdById], references: [id])
+  escalatedToAdmin Boolean      @default(false) @map("escalated_to_admin")
+
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  rowVersion       Int          @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([assignedToUserId])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+model CaseFee {
+  id             String           @id @default(uuid()) @db.Uuid
+  caseId         String           @unique @map("case_id") @db.Uuid
+  case           Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  agreedFee      Decimal          @map("agreed_fee") @db.Decimal(12, 2)
+  currency       String           @default("PKR")
+  notes          String?
+  agreedById     String           @map("agreed_by_id") @db.Uuid
+  agreedBy       User             @relation("AgreedBy", fields: [agreedById], references: [id])
+  installments   FeeInstallment[]
+
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  rowVersion     Int              @default(1) @map("row_version")
+
+  @@map("case_fees")
+}
+
+model FeeInstallment {
+  id                String            @id @default(uuid()) @db.Uuid
+  feeId             String            @map("fee_id") @db.Uuid
+  fee               CaseFee           @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  installmentNumber Int               @map("installment_number")
+  amount            Decimal           @db.Decimal(12, 2)
+  dueDate           DateTime          @map("due_date") @db.Date
+  status            InstallmentStatus @default(PENDING)
+  paidAt            DateTime?         @map("paid_at") @db.Timestamptz(6)
+  payments          Payment[]
+
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([feeId, installmentNumber])
+  @@index([dueDate])
+  @@map("fee_installments")
+}
+
+model Payment {
+  id              String          @id @default(uuid()) @db.Uuid
+  caseId          String          @map("case_id") @db.Uuid
+  case            Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  installmentId   String?         @map("installment_id") @db.Uuid
+  installment     FeeInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  receiptNumber   String          @unique @map("receipt_number")
+  amount          Decimal         @db.Decimal(12, 2)
+  paymentMethod   PaymentMethod   @default(BANK_TRANSFER) @map("payment_method")
+  paymentDate     DateTime        @map("payment_date") @db.Date
+  referenceNumber String?         @map("reference_number")
+  notes           String?
+  receivedById    String          @map("received_by_id") @db.Uuid
+  receivedBy      User            @relation("ReceivedBy", fields: [receivedById], references: [id])
+
+  isReversed      Boolean         @default(false) @map("is_reversed")
+  reversalReason  String?         @map("reversal_reason")
+  reversedAt      DateTime?       @map("reversed_at") @db.Timestamptz(6)
+  reversedById    String?         @map("reversed_by_id") @db.Uuid
+  reversedBy      User?           @relation("ReversedBy", fields: [reversedById], references: [id])
+
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  rowVersion      Int             @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([receiptNumber])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+model Expense {
+  id                 String          @id @default(uuid()) @db.Uuid
+  caseId             String          @map("case_id") @db.Uuid
+  case               Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  category           ExpenseCategory @default(OTHER)
+  amount             Decimal         @db.Decimal(12, 2)
+  expenseDate        DateTime        @map("expense_date") @db.Date
+  isBillableToClient Boolean         @default(true) @map("is_billable_to_client")
+  paymentStatus      ExpenseStatus   @default(OUTSTANDING) @map("payment_status")
+  receiptPath        String?         @map("receipt_path")
+  notes              String?
+  incurredById       String          @map("incurred_by_id") @db.Uuid
+  incurredBy         User            @relation("IncurredBy", fields: [incurredById], references: [id])
+
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?       @map("deleted_at") @db.Timestamptz(6)
+  rowVersion         Int             @default(1) @map("row_version")
+
+  @@index([caseId])
+  @@index([category])
+  @@map("expenses")
+}
+
+model ExportLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id])
+  exportType  String   @map("export_type")
+  fileFormat  String   @map("file_format")
+  filtersJson Json?    @map("filters_json")
+  rowCount    Int      @map("row_count")
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([exportType])
+  @@map("export_logs")
+}
+
+model JobQueue {
+  id             String    @id @default(uuid()) @db.Uuid
+  jobType        String    @map("job_type")
+  idempotencyKey String    @unique @map("idempotency_key")
+  payload        Json
+  status         JobStatus @default(PENDING)
+  retryCount     Int       @default(0) @map("retry_count")
+  maxRetries     Int       @default(3) @map("max_retries")
+  lastError      String?   @map("last_error")
+  runAt          DateTime  @default(now()) @map("run_at") @db.Timestamptz(6)
+  lockedAt       DateTime? @map("locked_at") @db.Timestamptz(6)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, runAt])
+  @@map("job_queue")
+}
+
+model DocumentPage {
+  id            String          @id @default(uuid()) @db.Uuid
+  versionId     String          @map("version_id") @db.Uuid
+  version       DocumentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  pageNumber    Int             @map("page_number")
+  textContent   String          @map("text_content") @db.Text
+  ocrConfidence Float?          @map("ocr_confidence")
+
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([versionId, pageNumber])
+  @@index([versionId])
+  @@map("document_pages")
+}
+
+model CaseSummary {
+  id            String      @id @default(uuid()) @db.Uuid
+  caseId        String      @map("case_id") @db.Uuid
+  case          Case        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  summaryType   SummaryType @default(OVERVIEW) @map("summary_type")
+  content       String      @db.Text
+  citationsJson Json?       @map("citations_json")
+  generatedById String      @map("generated_by_id") @db.Uuid
+  generatedBy   User        @relation("GeneratedSummaries", fields: [generatedById], references: [id])
+  tokenCount    Int?        @map("token_count")
+
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([caseId])
+  @@map("case_summaries")
+}
+
+model CaseChatMessage {
+  id            String   @id @default(uuid()) @db.Uuid
+  caseId        String   @map("case_id") @db.Uuid
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  userId        String   @map("user_id") @db.Uuid
+  user          User     @relation(fields: [userId], references: [id])
+  role          ChatRole @default(USER)
+  content       String   @db.Text
+  citationsJson Json?    @map("citations_json")
+
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([caseId, createdAt])
+  @@map("case_chat_messages")
+}
+
+model ExtractedEvent {
+  id                String             @id @default(uuid()) @db.Uuid
+  caseId            String             @map("case_id") @db.Uuid
+  case              Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentVersionId String?            @map("document_version_id") @db.Uuid
+  documentVersion   DocumentVersion?   @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+  eventType         ExtractedEventType @default(HEARING_DATE) @map("event_type")
+  suggestedDate     DateTime           @map("suggested_date") @db.Timestamptz(6)
+  description       String             @db.Text
+  confidence        Float              @default(0.0)
+  sourceSnippet     String             @map("source_snippet") @db.Text
+  pageNumber        Int?               @map("page_number")
+  status            ExtractionStatus   @default(PENDING_REVIEW)
+  reviewedById      String?            @map("reviewed_by_id") @db.Uuid
+  reviewedBy        User?              @relation("ReviewedExtractedEvents", fields: [reviewedById], references: [id])
+  reviewedAt        DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([caseId, status])
+  @@map("extracted_events")
+}
+
+model LegalPrecedent {
+  id                  String                      @id @default(uuid()) @db.Uuid
+  citation            String                      @unique
+  title               String
+  court               PrecedentCourtType
+  bench               String
+  benchSize           Int                         @default(1) @map("bench_size")
+  decisionYear        Int                         @map("decision_year")
+  decisionDate        DateTime?                   @map("decision_date") @db.Date
+  precedentialWeight  PrecedentPrecedentialWeight @default(BINDING) @map("precedential_weight")
+  status              PrecedentStatus             @default(GOOD_LAW)
+  legalTopics         String[]                    @map("legal_topics")
+  statutoryProvisions String[]                    @map("statutory_provisions")
+  headnote            String                      @db.Text
+  summary             String                      @db.Text
+  sourceUrl           String?                     @map("source_url")
+  verifiedById        String?                     @map("verified_by_id") @db.Uuid
+  verifiedBy          User?                       @relation("VerifiedPrecedents", fields: [verifiedById], references: [id])
+
+  createdAt           DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([court, precedentialWeight])
+  @@index([decisionYear])
+  @@map("legal_precedents")
+}
+
+model DocumentTemplate {
+  id                   String              @id @default(uuid()) @db.Uuid
+  name                 String
+  code                 String              @unique
+  category             TemplateCategory
+  description          String?
+  isActive             Boolean             @default(true) @map("is_active")
+  currentVersionNumber Int                 @default(1) @map("current_version_number")
+  createdById          String              @map("created_by_id") @db.Uuid
+  createdBy            User                @relation("CreatedTemplates", fields: [createdById], references: [id])
+
+  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions             TemplateVersion[]
+  generatedDocuments   GeneratedDocument[]
+
+  @@map("document_templates")
+}
+
+model TemplateVersion {
+  id              String            @id @default(uuid()) @db.Uuid
+  templateId      String            @map("template_id") @db.Uuid
+  template        DocumentTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  versionNumber   Int               @map("version_number")
+  content         String            @db.Text
+  availableTokens String[]          @map("available_tokens")
+  isPublished     Boolean           @default(true) @map("is_published")
+  changelog       String?
+  publishedById   String            @map("published_by_id") @db.Uuid
+  publishedBy     User              @relation("PublishedTemplateVersions", fields: [publishedById], references: [id])
+
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([templateId, versionNumber])
+  @@map("template_versions")
+}
+
+model GeneratedDocument {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  caseId                  String                 @map("case_id") @db.Uuid
+  case                    Case                   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  templateId              String?                @map("template_id") @db.Uuid
+  template                DocumentTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateVersionNumber   Int?                   @map("template_version_number")
+  title                   String
+  content                 String                 @db.Text
+  approvalStatus          DocumentApprovalStatus @default(DRAFT) @map("approval_status")
+  createdById             String                 @map("created_by_id") @db.Uuid
+  createdBy               User                   @relation("CreatedGeneratedDocuments", fields: [createdById], references: [id])
+  approvedById            String?                @map("approved_by_id") @db.Uuid
+  approvedBy              User?                  @relation("ApprovedGeneratedDocuments", fields: [approvedById], references: [id])
+  approvedAt              DateTime?              @map("approved_at") @db.Timestamptz(6)
+  rejectionReason         String?                @map("rejection_reason")
+  exportedAt              DateTime?              @map("exported_at") @db.Timestamptz(6)
+  exportFormat            String?                @map("export_format")
+  signedDocumentId        String?                @map("signed_document_id") @db.Uuid
+  signedDocument          Document?              @relation("LinkedSignedDocument", fields: [signedDocumentId], references: [id], onDelete: SetNull)
+
+  createdAt               DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([caseId, approvalStatus])
+  @@map("generated_documents")
+}
+
+model ClientMessage {
+  id              String                @id @default(uuid()) @db.Uuid
+  caseId          String                @map("case_id") @db.Uuid
+  case            Case                  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  clientId        String                @map("client_id") @db.Uuid
+  client          Client                @relation(fields: [clientId], references: [id])
+  channel         MessageChannel        @default(EMAIL)
+  recipient       String
+  subject         String?
+  content         String                @db.Text
+  messageType     String                @default("HEARING_UPDATE") @map("message_type")
+  approvalStatus  MessageApprovalStatus @default(DRAFT) @map("approval_status")
+  createdById     String                @map("created_by_id") @db.Uuid
+  createdBy       User                  @relation("CreatedClientMessages", fields: [createdById], references: [id])
+  approvedById    String?               @map("approved_by_id") @db.Uuid
+  approvedBy      User?                 @relation("ApprovedClientMessages", fields: [approvedById], references: [id])
+  approvedAt      DateTime?             @map("approved_at") @db.Timestamptz(6)
+  rejectionReason String?               @map("rejection_reason")
+  sentAt          DateTime?             @map("sent_at") @db.Timestamptz(6)
+  deliveryStatus  String?               @map("delivery_status")
+
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([caseId, approvalStatus])
+  @@map("client_messages")
+}
+
+model ExternalDocumentShare {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  caseId                   String                 @map("case_id") @db.Uuid
+  case                     Case                   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  recipientEmail           String                 @map("recipient_email")
+  subject                  String
+  message                  String                 @db.Text
+  isPasswordProtected      Boolean                @default(true) @map("is_password_protected")
+  passwordDeliveryMethod   PasswordDeliveryMethod @default(WHATSAPP) @map("password_delivery_method")
+  deliveryRecipientContact String?                @map("delivery_recipient_contact")
+  approvalStatus           MessageApprovalStatus  @default(DRAFT) @map("approval_status")
+  createdById              String                 @map("created_by_id") @db.Uuid
+  createdBy                User                   @relation("CreatedExternalShares", fields: [createdById], references: [id])
+  approvedById             String?                @map("approved_by_id") @db.Uuid
+  approvedBy               User?                  @relation("ApprovedExternalShares", fields: [approvedById], references: [id])
+  approvedAt               DateTime?              @map("approved_at") @db.Timestamptz(6)
+  rejectionReason          String?                @map("rejection_reason")
+  sentAt                   DateTime?              @map("sent_at") @db.Timestamptz(6)
+
+  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  items                    ExternalShareItem[]
+
+  @@index([caseId, approvalStatus])
+  @@map("external_document_shares")
+}
+
+model ExternalShareItem {
+  id                String                @id @default(uuid()) @db.Uuid
+  shareId           String                @map("share_id") @db.Uuid
+  share             ExternalDocumentShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  documentVersionId String                @map("document_version_id") @db.Uuid
+  documentVersion   DocumentVersion       @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+
+  @@map("external_share_items")
+}
+
+model ConstitutionalArticle {
+  id              String   @id @default(uuid()) @db.Uuid
+  articleNumber   String   @unique @map("article_number")
+  title           String
+  part            String
+  chapter         String?
+  content         String   @db.Text
+  explanation     String?  @db.Text
+  keyTopics       String[] @map("key_topics")
+  crossReferences String[] @map("cross_references")
+  amendmentNotes  String?  @map("amendment_notes")
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([articleNumber])
+  @@index([part])
+  @@map("constitutional_articles")
+}
+
+model StatutoryRule {
+  id              String   @id @default(uuid()) @db.Uuid
+  statuteCode     String   @map("statute_code")
+  statuteName     String   @map("statute_name")
+  ruleNumber      String   @map("rule_number")
+  title           String
+  category        String
+  content         String   @db.Text
+  courtType       String?  @map("court_type")
+  notes           String?  @db.Text
+  keyTopics       String[] @map("key_topics")
+  crossReferences String[] @map("cross_references")
+
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([statuteCode, ruleNumber])
+  @@index([statuteCode])
+  @@index([category])
+  @@map("statutory_rules")
+}
