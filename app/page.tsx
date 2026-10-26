@@ -112,7 +112,7 @@ export default async function DashboardPage() {
     ];
   }
 
-  const formattedCases = cases.map((c) => ({
+  const formattedCases = cases.map((c: any) => ({
     id: c.id,
     caseNumber: c.caseNumber,
     title: c.title,
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
     isRestricted: c.isRestricted,
     status: c.status,
     client: c.client,
-    assignedCounsel: c.assignments.map((a) => a.user.fullName),
+    assignedCounsel: (c.assignments || []).map((a: any) => a?.user?.fullName || "Counsel"),
   }));
 
   const financeOverview =
